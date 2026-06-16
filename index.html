@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Шушмомер</title>
+<title>Шумомер</title>
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;width:100%;height:100%;overflow:hidden}
@@ -11,9 +11,9 @@
     font-family:Arial, Helvetica, sans-serif;
     color:#fff;
     background:
-      radial-gradient(circle at 50% 15%, rgba(170,255,0,.22), transparent 28%),
-      radial-gradient(circle at 18% 75%, rgba(0,255,80,.16), transparent 32%),
-      linear-gradient(135deg,#030801 0%,#071400 42%,#010401 100%);
+      radial-gradient(circle at 50% 12%, rgba(185,255,24,.24), transparent 28%),
+      radial-gradient(circle at 18% 78%, rgba(0,255,90,.14), transparent 34%),
+      linear-gradient(135deg,#020600 0%,#071600 48%,#010300 100%);
   }
   body:before{
     content:"";
@@ -32,11 +32,11 @@
     flex-direction:column;
     align-items:center;
     justify-content:flex-start;
-    padding:clamp(12px,3vh,34px) 16px 16px;
+    padding:clamp(10px,2.6vh,28px) 16px 16px;
   }
   h1{
-    margin:0 0 clamp(8px,1.5vh,18px);
-    font-size:clamp(38px,8vw,86px);
+    margin:0 0 clamp(6px,1.2vh,14px);
+    font-size:clamp(42px,8.5vw,88px);
     line-height:.9;
     text-transform:uppercase;
     letter-spacing:.04em;
@@ -52,7 +52,7 @@
   canvas{width:100%;height:100%;display:block}
   .center{
     position:absolute;
-    inset:31% 24%;
+    inset:28% 20% 35%;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -60,30 +60,34 @@
     text-align:center;
     pointer-events:none;
   }
-  .maxLabel{
-    font-size:clamp(12px,2.2vw,18px);
-    color:#d9ff9b;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    opacity:.92;
-  }
   .maxValue{
+    order:1;
     font-weight:900;
-    font-size:clamp(54px,13vw,112px);
-    line-height:.9;
+    font-size:clamp(62px,15vw,128px);
+    line-height:.82;
     color:#fff;
     text-shadow:0 0 18px rgba(183,255,24,.85), 0 5px 0 #111;
   }
+  .maxLabel{
+    order:2;
+    margin-top:8px;
+    font-size:clamp(13px,2.6vw,22px);
+    color:#d9ff9b;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    opacity:.95;
+  }
   .liveValue{
-    margin-top:6px;
+    order:3;
+    margin-top:7px;
     font-weight:800;
-    font-size:clamp(18px,4vw,34px);
+    font-size:clamp(17px,3.6vw,30px);
     color:#b7ff18;
   }
   .controls{
     display:flex;
     gap:14px;
-    margin-top:clamp(8px,1.5vh,18px);
+    margin-top:clamp(4px,1vh,12px);
   }
   button{
     border:2px solid #b7ff18;
@@ -114,9 +118,9 @@
 
   @media (orientation:landscape){
     .app{
-      padding:8px 18px 10px;
+      padding:6px 18px 8px;
       display:grid;
-      grid-template-columns:1fr min(54vh,44vw) 1fr;
+      grid-template-columns:1fr min(58vh,45vw) 1fr;
       grid-template-rows:auto auto;
       align-content:start;
       justify-items:center;
@@ -124,16 +128,16 @@
     }
     h1{
       grid-column:1 / 4;
-      font-size:clamp(32px,6vh,64px);
-      margin-bottom:2px;
+      font-size:clamp(34px,6.5vh,66px);
+      margin-bottom:0;
     }
     .stage{
       grid-column:2;
-      width:min(58vh,44vw,520px);
+      width:min(59vh,45vw,530px);
     }
     .controls{
       grid-column:2;
-      margin-top:2px;
+      margin-top:0;
     }
     button{
       min-width:clamp(118px,18vw,190px);
@@ -141,20 +145,21 @@
       font-size:clamp(16px,3.5vh,26px);
       border-radius:14px;
     }
-    .maxValue{font-size:clamp(44px,13vh,98px)}
-    .liveValue{font-size:clamp(18px,4.5vh,32px)}
+    .maxValue{font-size:clamp(52px,14vh,108px)}
+    .maxLabel{font-size:clamp(12px,3vh,20px)}
+    .liveValue{font-size:clamp(16px,4vh,28px)}
   }
 </style>
 </head>
 <body>
   <div class="app">
-    <h1>Шушмомер</h1>
+    <h1>Шумомер</h1>
 
     <div class="stage">
       <canvas id="gauge" width="900" height="900"></canvas>
       <div class="center">
-        <div class="maxLabel">Максимум</div>
         <div class="maxValue" id="maxValue">0</div>
+        <div class="maxLabel">Максимум</div>
         <div class="liveValue" id="liveValue">0</div>
       </div>
     </div>
@@ -184,18 +189,20 @@
   let smooth = 0;
   let raf = null;
 
-  const START_DELAY = 1000;
+  let baseline = 0;
+  let baselineSamples = [];
+  const CALIBRATION_MS = 1000;
 
   function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
   function draw(value){
     const w = canvas.width, h = canvas.height;
-    const cx = w/2, cy = h/2, r = w*0.37;
+    const cx = w/2, cy = h/2, r = w*0.36;
     ctx.clearRect(0,0,w,h);
 
     const start = Math.PI*0.78;
     const end = Math.PI*2.22;
-    const t = clamp(value / 350, 0, 1);
+    const t = clamp(value / 1000, 0, 1);
     const ang = start + (end-start)*t;
 
     ctx.save();
@@ -211,15 +218,17 @@
 
     const grad = ctx.createLinearGradient(-r,0,r,0);
     grad.addColorStop(0,'#55ff00');
-    grad.addColorStop(.55,'#d7ff00');
-    grad.addColorStop(1,'#ff2b2b');
+    grad.addColorStop(.45,'#d7ff00');
+    grad.addColorStop(.72,'#ff8a00');
+    grad.addColorStop(1,'#ff1f1f');
+
     ctx.beginPath();
     ctx.arc(0,0,r,start,ang);
     ctx.strokeStyle = grad;
     ctx.stroke();
 
-    for(let i=0;i<=60;i++){
-      const a = start + (end-start)*(i/60);
+    for(let i=0;i<=50;i++){
+      const a = start + (end-start)*(i/50);
       const big = i%5===0;
       const inner = r + (big?34:44);
       const outer = r + 62;
@@ -255,35 +264,59 @@
 
     ctx.restore();
 
+    // Надписи специально ниже шкалы
     ctx.font = '900 42px Arial';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,.65)';
-    ctx.fillText('ТИШЕ', w*.21, h*.76);
-    ctx.fillText('ГРОМЧЕ', w*.79, h*.76);
+    ctx.fillStyle = 'rgba(255,255,255,.72)';
+    ctx.fillText('ТИШЕ', w*.21, h*.86);
+    ctx.fillText('ГРОМЧЕ', w*.79, h*.86);
   }
 
-  function getLevel(){
+  function rawAudioPower(){
     analyser.getByteTimeDomainData(data);
     let sum = 0;
     let maxAbs = 0;
+
     for(let i=0;i<data.length;i++){
       const x = (data[i]-128)/128;
       sum += x*x;
       const a = Math.abs(x);
       if(a > maxAbs) maxAbs = a;
     }
-    const rms = Math.sqrt(sum/data.length);
 
-    // Нелинейная шкала: тихий шум не раздувается, громкий крик хорошо растет.
-    const score = Math.pow(rms, 0.58) * 360 + maxAbs * 42;
+    const rms = Math.sqrt(sum/data.length);
+    return rms * 0.82 + maxAbs * 0.18;
+  }
+
+  function scoreFromPower(power){
+    const noiseGate = 0.006;
+    const adjusted = Math.max(0, power - baseline - noiseGate);
+
+    if(adjusted <= 0) return 0;
+
+    // Игровая шкала:
+    // тишина = 0
+    // нормальный крик = 200–400
+    // громкий крик = 600–800
+    // рекорд = 900–999, но верхушка сжата, чтобы 999 не получали все подряд
+    let score = Math.pow(adjusted / 0.145, 0.72) * 1000;
+
+    if(score > 820){
+      score = 820 + (1 - Math.exp(-(score - 820) / 260)) * 179;
+    }
+
     return Math.round(clamp(score, 0, 999));
   }
 
   async function start(){
     stop(false);
+
     current = 0;
     peak = 0;
     smooth = 0;
+    baseline = 0;
+    baselineSamples = [];
+
     maxEl.textContent = '0';
     liveEl.textContent = '0';
     draw(0);
@@ -299,7 +332,7 @@
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0.18;
+    analyser.smoothingTimeConstant = 0.1;
     data = new Uint8Array(analyser.fftSize);
     source = audioCtx.createMediaStreamSource(stream);
     source.connect(analyser);
@@ -313,10 +346,14 @@
     if(!running) return;
 
     const now = performance.now();
+    const power = rawAudioPower();
 
-    if(now - startedAt < START_DELAY){
+    // Первая секунда: стрелка и максимум на нуле, идет калибровка тишины
+    if(now - startedAt < CALIBRATION_MS){
+      baselineSamples.push(power);
       current = 0;
       smooth = 0;
+      peak = 0;
       liveEl.textContent = '0';
       maxEl.textContent = '0';
       draw(0);
@@ -324,16 +361,26 @@
       return;
     }
 
-    const raw = getLevel();
-    smooth = smooth * 0.72 + raw * 0.28;
+    if(baselineSamples.length){
+      baselineSamples.sort((a,b) => a-b);
+      baseline = baselineSamples[Math.floor(baselineSamples.length * 0.55)] || 0;
+      baselineSamples = [];
+    }
+
+    const rawScore = scoreFromPower(power);
+    smooth = smooth * 0.62 + rawScore * 0.38;
     current = Math.round(smooth);
+
+    if(current < 8) current = 0;
 
     if(current > peak){
       peak = current;
       maxEl.textContent = peak;
-      flash.classList.remove('on');
-      void flash.offsetWidth;
-      flash.classList.add('on');
+      if(peak > 120){
+        flash.classList.remove('on');
+        void flash.offsetWidth;
+        flash.classList.add('on');
+      }
     }
 
     liveEl.textContent = current;
@@ -359,6 +406,7 @@
   playBtn.addEventListener('click', () => {
     start().catch(() => {});
   });
+
   stopBtn.addEventListener('click', () => {
     stop(true);
   });
